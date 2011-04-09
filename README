@@ -1,0 +1,67 @@
+1. Análisis de ficheros de logs
+
+Desarrollar un programa en Python que analice un fichero de logs de Apache y genere los siguientes resultados:
+
+1. Tamaño de cada fichero.
+
+2. Tráfico total por cada fichero.
+
+3. Tráfico total por cada dirección IP analizada.
+
+4. El día con más tráfico (contando los bytes servidos).
+
+5. La hora con más tráfico (contando los bytes servidos).
+
+6. El día con mas visitantes (por IP diferentes).
+
+7. Ficheros solicitados no existentes (código 404).
+
+Opcional: mostrar los resultados en un gráfico (se pueden usar librerías especializadas, por ejemplo CairoPlot)
+
+Fichero logs de ejemplo: http://mnm.uib.es/gallir/tmp/access.log.gz
+(para descomprimirlo: gunzip access.log.gz)
+
+Columna   Valor
+1    IP de acceso al servidor host
+2-3  Información de seguridad de https / SSL conexiones
+4    Fecha de la petición específica
+5    Zona horaria de la petición específica
+6    Método invocado
+7    URL solicitada
+8    Protocolo utilizado
+9    Resultados de código
+10   Número de bytes transferidos
+11   Referrer
+12   cadena de identificación del Navegador
+
+
+
+2. Servidor web en Python
+
+Desarrollar un servidor web básico en Python de ficheros estáticos similar al demostrado en clase. Deberá tener las siguientes características
+
+1. Ser multiproceso con "pre fork".
+
+2. El "pool" de procesos debe estar controlado con un máximo de procesos, mínimo y máximo de procesos "desocupados".
+
+3. El servidor debe enviar las siguientes cabeceras:
+- Tamaño ("Content-Length")
+- Última modificación ("Last-Modified")
+- Tipo de fichero ("Content-Type", se puede extraer de la extensión y las definiciones en /etc/mime.types)
+
+4. Se deben presentar estadísticas de accesos por segundo del ApacheBenchmark con una (-c 1), cinco (-c 5) y 20 (-c 20) hilos, comparando el rendimiento del servidor con 1, 5 y 20 procesos (elegir un tamaño de fichero razonable, de al menos 10 KB).
+
+
+Opcionales:
+
+- Que responda correctamente a la cabecera "If-Modified-Since" con un 302 si corresponde.
+
+- Permitir conexiones persistentes.
+
+
+
+PRESENTACIÓN
+
+Se subirá a la "tarea" correspondiente un fichero PDF u OpenOffice con el código fuente de los programas, los resultados de texto, y capturas de pantallas si corresponde.
+
+El trabajo puede ser presentado por hasta dos personas.

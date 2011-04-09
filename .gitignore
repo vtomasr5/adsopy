@@ -1,0 +1,5 @@
+*~
+*.pyc
+docs
+access.log
+
