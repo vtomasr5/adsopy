@@ -1686,3 +1686,10 @@ GENERATE_LEGEND        = YES
 # the various graphs.
 
 DOT_CLEANUP            = YES
+
+# Doxypy
+
+FILTER_SOURCE_FILES = YES
+
+INPUT_FILTER = "python /usr/bin/doxypy"
+

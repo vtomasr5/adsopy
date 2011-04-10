@@ -18,8 +18,6 @@ Desarrollar un programa en Python que analice un fichero de logs de Apache y gen
 
 Opcional: mostrar los resultados en un gráfico (se pueden usar librerías especializadas, por ejemplo CairoPlot)
 
-Fichero logs de ejemplo: http://mnm.uib.es/gallir/tmp/access.log.gz
-(para descomprimirlo: gunzip access.log.gz)
 
 Columna   Valor
 1    IP de acceso al servidor host
