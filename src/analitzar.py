@@ -5,6 +5,9 @@
 # LLICENCIA: GPL-3
 # VERSIO: 0.1
 
+##	@package analitzar
+#	Mòdul que analitza el fitxers log que produeix el servidor web Apache
+
 ##### IMPORTS #####
 
 import re
@@ -14,6 +17,8 @@ import os
 
 ##### FUNCIONS #####
 
+##  Funció que calcula el tamany de cada fitxer
+#	@param fitxer Fitxer de log
 def punt1(fitxer):
     """
     documentació
@@ -43,6 +48,8 @@ def punt6():
 def punt7():
     pass
 
+##  Funció que mostra un menú per pantalla
+#	@param f Fitxer de log
 def menu(f):
     print "\n   Menú d'administració interactiu\n"
     print "1) Tamany de cada fitxer"
@@ -77,6 +84,8 @@ def menu(f):
 
 ##### INICI DEL PROGRAMA  #####
 
+##  Punt d'inici del programa
+# 	Comprovacions de que existeix el fitxer i de que, efectivament, es un fitxer.
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print "ERROR: Error de paràmetres!. Ús: ./analitzar.py fitxer_log"

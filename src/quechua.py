@@ -5,6 +5,8 @@
 # LLICENCIA: GPL-3
 # VERSIO: 0.1
 
+##  @package quechua
+#   Servidor web escrit en python
 import socket
 import os, sys, time
 import sendfile
@@ -15,6 +17,8 @@ from stat import *
 
 FILE_CONFIG = "../data/quechua.conf"
 
+##  Llegeix la configuració de la variable del fitxer de configuració
+#   @param clau
 def read_config(clau):
     cfg = ConfigParser.ConfigParser()
     try:
@@ -25,9 +29,13 @@ def read_config(clau):
         print "ERROR: El fitxer no se pot llegir!\n"
         print ex
 
+##  Afegeix una nova variable al fitxer de configuració
+#   @param clau Nom de la variable
+#   @param valor Valor assignat a la clau
 def set_config(clau, valor):
     cfg.set('quechuad', clau, valor)
 
+##  Escriu els canvis que s'han produit
 def write_config():
     try:
         f = open(FILE_CONFIG, 'w')
@@ -39,6 +47,8 @@ def write_config():
 
     debug("Configuració guardada")
 
+##  Mostra un missatge per pantalla amb la data i hora
+#   @param message Missatge que es vol enregistrar
 def debug(message):
     print "%s - %s" % (time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()), message)
 
@@ -46,6 +56,8 @@ def log(level, message):
     """ escriu un missatge de log al fitxer de logs """
     logger.log(level, message)
 
+##  Funció que contesta al socket
+#   @param sock Socket
 def respuesta(sock):
     try:
         OUT = sock.makefile()
@@ -77,6 +89,7 @@ def respuesta(sock):
             print "Error en la conexión", e
     OUT.close()
 
+##  Inicia el servidor
 def start():
     logging.debug("prova debug")
     try:
@@ -91,6 +104,7 @@ def start():
     debug("Servidor en marxa")
     # afegir codi a partir d'aqui
 
+##  Atura el servidor
 def stop():
     try:
         f = read_config('pid_file')
@@ -107,11 +121,13 @@ def stop():
     except IOError:
         print "El servidor ja està aturat!"
 
+##  Reinicia el servidor
 def restart():
     stop()
     time.sleep(1)
     start()
 
+##  Inicia el servei de logging
 def init_logger():
     logger = logging.getLogger('quechua')
     log = read_config('log_file')
@@ -121,6 +137,7 @@ def init_logger():
     logger.addHandler(hdlr)
     logger.setLevel(logging.DEBUG)
 
+##  Punt d'inici del programa
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         init_logger()
