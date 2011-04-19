@@ -63,6 +63,10 @@ def menu(f):
 
     res = raw_input("Opció: ")
 
+    if len(res) != 1:
+        print "\nALERTA: Opció incorrecte!"
+        sys.exit(-1)
+
     if "1" in res:
         punt1(f)
     elif "2" in res:
