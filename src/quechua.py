@@ -6,7 +6,8 @@
 # VERSIO: 0.1
 
 ##  @package quechua
-#   Servidor web escrit en python
+#   Servidor web "estàtic" escrit en python
+
 import socket
 import os, sys, time
 import sendfile
@@ -52,6 +53,9 @@ def write_config():
 def debug(message):
     print "%s - %s" % (time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()), message)
 
+##  Envia missatges de log al fitxer de log corresponent
+#   @param level Nivell de detall del missatge
+#   @param message Missatge que es vol enregistrar
 def log(level, message):
     """ escriu un missatge de log al fitxer de logs """
     logger.log(level, message)
@@ -64,7 +68,7 @@ def respuesta(sock):
         http_command = OUT.readline()
         headers = []
         command = http_command.split()
-        print "Commando:", command
+        print "Comanda:", command
         for line in OUT:
             if line.strip() == "": break
             headers.append(line)
@@ -99,12 +103,30 @@ def start():
         print "El servidor ja està en marxa!, PID %s" % fpid.read()
         return
     except IOError:
-        print "Arrancant..."
+        pass
 
-    debug("Servidor en marxa")
+    #debug("Servidor en marxa")
     # afegir codi a partir d'aqui
 
-##  Atura el servidor
+    pid = os.fork()
+    if pid == 0:
+        i = 0
+        while True:
+            try:
+                conn, addr = s.accept()
+                print "Conexió desde: ", addr, "PID: ", os.getpid()
+                respuesta(conn)
+                conn.close()
+                i += 1
+                if i == 1000: exit(0)
+            except socket.error:
+                pass
+            except KeyboardInterrupt:
+                stop()
+    else:
+        return pid
+
+##  Atura el servidor correctament
 def stop():
     try:
         f = read_config('pid_file')
@@ -117,7 +139,7 @@ def stop():
                 break
             time.sleep(0.2)
 
-        print "Aturant..."
+        print "Aturant...", os.getpid()
     except IOError:
         print "El servidor ja està aturat!"
 
@@ -137,16 +159,44 @@ def init_logger():
     logger.addHandler(hdlr)
     logger.setLevel(logging.DEBUG)
 
+dr = read_config('document_root')
+env = os.getenv(dr)
+lang = os.getenv('LANG')
+
+if env:
+    if lang.startswith('es'):
+        document_root = env.strip() + '/Escritorio'
+        print document_root
+    elif lang.startswith('en'):
+        document_root = env.strip() + '/Desktop'
+else:
+    print "ERROR: Variable d'entorn %s no definida!" %env
+    sys.exit(-1)
+
 ##  Punt d'inici del programa
 if __name__ == '__main__':
+    # comprovacions
+    if os.geteuid() != 0:
+        print 'Has d''esser root! (o sudo)!'
+        sys.exit(-1)
+
     if len(sys.argv) == 2:
         init_logger()
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        s.bind(("", 10000))
-        s.listen(1)
+            host = read_config('host')
+            port = read_config('port')
+
+            s.bind((host, int(port)))
+            s.listen(1)
+        except KeyboardInterrupt:
+            print "\nSortint... ara!\n"
+            sys.exit(-1)
+        finally:
+            s.close()
 
         pids = set()
 
@@ -160,33 +210,23 @@ if __name__ == '__main__':
         print "Ús: ./quechua.py start|stop|restart"
         sys.exit(-1)
 
-#~ def start_server():
-    #~ pid = os.fork()
-    #~ if pid == 0:
-        #~ i = 0
-        #~ while True:
-            #~ try:
-                #~ conn, addr = s.accept()
-                #~ print "Conexión desde:", addr, "PID:", os.getpid()
-                #~ respuesta(conn)
-                #~ conn.close()
-                #~ i += 1
-                #~ if i == 1000: exit(0)
-            #~ except socket.error:
-                #~ pass
-    #~ else:
-        #~ return pid
+    n_procs = read_config('max_processes')
 
-#~ while True:
-    #~ for i in range(5 - len(pids)):
-        #~ pid = start_server()
-        #~ pids.add(pid)
-        #~ print "Nuevo proceso: ", pid
+    # Inici
+    while True:
+        for i in range(int(n_procs)):
+            pid = start()
+            pids.add(pid)
+            print "Nou proces: ", pid
 
-    #~ try:
-        #~ (pid, status, rusage) = os.wait3(0)
-        #~ if pid > 0:
-            #~ pids.remove(pid)
-    #~ except OSError: pass
+        try:
+            (pid, status, rusage) = os.wait3(0)
+            if pid > 0:
+                pids.remove(pid)
+        except OSError:
+            pass
+        except KeyboardInterrupt:
+            print "\nSortint... ara!\n"
+            sys.exit(-1)
 
-    #~ print "acabó:", pid, "status:", status
+        print "ha acabat:", pid, "stat:", status
