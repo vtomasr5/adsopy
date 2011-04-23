@@ -5,8 +5,8 @@
 # LLICENCIA: GPL-3
 # VERSIO: 0.1
 
-##	@package analitzar
-#	Mòdul que analitza el fitxers log que produeix el servidor web Apache
+##  @package analitzar
+#   Mòdul que analitza el fitxers log que produeix el servidor web Apache
 
 ##### IMPORTS #####
 
@@ -18,17 +18,22 @@ import os
 ##### FUNCIONS #####
 
 ##  Funció que calcula el tamany de cada fitxer
-#	@param fitxer Fitxer de log
+#   @param fitxer Fitxer de log
 def punt1(fitxer):
-    """
-    documentació
-    """
-    d = []
+    d = set()
     fitxer = fileinput.input(fitxer)
     for linia in fitxer:
-        d.append(linia)
-
+        d.add(linia) # afegim ses lines a n'es conjut "set"
     fitxer.close()
+
+    it = iter(d)
+    for l in it: # iteram sobre ses linies
+        #print l[0:15] # l conte ses lines d'es fitxer
+        print l
+        ip = re.findall(r'\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b', l, re.I) # cerca les IP's
+        if ip:
+            for i in ip:
+                print i
 
 def punt2():
     pass
@@ -49,7 +54,7 @@ def punt7():
     pass
 
 ##  Funció que mostra un menú per pantalla
-#	@param f Fitxer de log
+#   @param f Fitxer de log
 def menu(f):
     print "\n   Menú d'administració interactiu\n"
     print "1) Tamany de cada fitxer"
@@ -89,7 +94,7 @@ def menu(f):
 ##### INICI DEL PROGRAMA  #####
 
 ##  Punt d'inici del programa
-# 	Comprovacions de que existeix el fitxer i de que, efectivament, es un fitxer.
+#   Comprovacions de que existeix el fitxer i de que, efectivament, es un fitxer.
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print "ERROR: Error de paràmetres!. Ús: ./analitzar.py fitxer_log"
@@ -102,12 +107,12 @@ if __name__ == '__main__':
     if not os.path.isfile(sys.argv[1]):
         print "ERROR: '%s' no es un fitxer!" % sys.argv[1]
         sys.exit(-3)
-    else:
-        FITXER = sys.argv[1]
+
+    fitxer = sys.argv[1]
 
     while True:
         try:
-            menu(FITXER)
-        except KeyboardInterrupt, e:
-            print "\nSortint ja!..."
+            menu(fitxer)
+        except KeyboardInterrupt:
+            print "\nSortint... ara!"
             sys.exit(1)
