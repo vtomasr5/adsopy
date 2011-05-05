@@ -8,187 +8,149 @@
 ##  @package quechua
 #   Servidor web "estàtic" amb prefork escrit en python
 
-import socket
-import os, sys, time
-import sendfile
-import ConfigParser
-import logging
-
+import socket, os, sendfile, time
+import mimetypes as mim
 from stat import *
-from multiprocessing import BoundedSemaphore
+from multiprocessing import Process, Queue, current_process, Semaphore
+import ConfigParser
 
 FILE_CONFIG = "../data/quechua.conf"
 
-class Config():
-    ##  Constructor de la clase Config
-    #   @param file_config Fichero de configuración
-    def __init__(self, file_config):
-        self.file_config = file_config
-
-    ##  Llegeix la configuració de la variable del fitxer de configuració
-    #   @param clau
-    def read_config(clau):
-        cfg = ConfigParser.ConfigParser()
-        try:
-            cfg.read(self.file_config)
-            valor = cfg.get('quechuad', clau)
-            return valor
-        except IOError, ex:
-            print ("El fitxer no se pot llegir!")
-
-class Server():
-    ##  Constructor de la clase Server
-    #   @param maxServers Numero máximo de procesos en el servidor
-    #   @param minServers Numero mínimo de procesos en el servidor
-    #   @param minSpareServers Numero mínimo de procesos en espera en el servidor
-    #   @param maxSpareServers Numero máximo de procesos en espera en el servidor
-    #   @param host Dirección IP
-    #   @param port Puerto por donde escucha el servidor
-    def __init__(self, maxServers, minServers, minSpareServers, maxSpareServers, host, port):
-        self.maxServers = int(maxServers)
-        self.minServers = int(minServers)
-        self.minSpares = int(minSpareServers)
-        self.maxSpares = int(maxSpareServers)
-        self.host = host
-        selg.port = int(port)
-
-    def newProcess(self):
-        return
-
-    ##  Funció que contesta al socket
-    #   @param sock Socket
-    def respuesta(sock):
-        try:
-            OUT = sock.makefile()
-            http_command = OUT.readline()
-            headers = []
-            command = http_command.split()
-            print "Comanda:", command
-            for line in OUT:
-                if line.strip() == "": break
-                headers.append(line)
-            if command[0] == "GET":
-                if command[1] == "/":
-                    filename = document_root + "/index.html"
-                else:
-                    filename = document_root + command[1]
-                try:
-                    FILE = open(filename, "rb")
-                    print "Sending", filename
-                    size = os.stat(filename)[ST_SIZE]
-                    OUT.write("HTTP/1.0 200 Quechua\r\n")
-                    OUT.write("Content-Length: %d\r\n\r\n" % size)
-                    OUT.flush()
-                    sendfile.sendfile(OUT.fileno(), FILE.fileno(), 0, size)
-
-                except IOError:
-                    OUT.write("HTTP 404 Fichero no existe\r\n")
-                    print "Error con", filename
-        except Exception, e:
-                print "Error en la conexión", e
-        OUT.close()
-
-    ##  Inicia el servidor
-    def start():
-        loginfo('Servidor arrancat')
-
-        sem_total = BoundedSemaphore(n_procs)
-        sem_actius = BoundedSemaphore(n_procs)
-
-        pid = os.fork()
-        if pid == 0: # hijo
-            i = 0
-            while True:
-                try:
-                    conn, addr = s.accept()
-                    print "Conexió desde: ", addr, "PID: ", os.getpid()
-                    sem_actius.acquire()
-
-                    respuesta(conn)
-                    conn.close()
-
-                    sem_actius.release()
-                    i += 1
-                    if i == 1000: exit(0)
-                except socket.error:
-                    pass
-
-        elif pid > 0: # padre
-            print "padre"
-            return pid
-        else: # error
-            print "ERROR: Proceso %d no creado" % pid
-            return None
-
-    ##  Atura el servidor correctament
-    def stop():
-        try:
-            while True:
-                try:
-                    os.kill(os.getpid(), signal.SIGTERM)
-                except OSError: # cutre
-                    break
-                time.sleep(0.2)
-
-            print "Aturant...", os.getpid()
-        except IOError:
-            print "El servidor ja està aturat!"
-
-    dr = read_config('document_root')
-    env = os.getenv(dr)
-    lang = os.getenv('LANG')
-
-    # determinar el 'document_root' a l'escriptori
-    if env:
-        if lang.startswith('es'):
-            document_root = env.strip() + '/Escritorio'
-        elif lang.startswith('en'):
-            document_root = env.strip() + '/Desktop'
-
-        print 'Arrel: %s' % document_root
-        loginfo('Arrel: %s' % document_root)
-    else:
-        print "ERROR: Variable d'entorn %s no definida!" %env
-        sys.exit(-1)
-
-##  Punt d'inici del programa
-if __name__ == '__main__':
+##  Llegeix la configuració de la variable del fitxer de configuració
+#   @param clau
+def read_config(clau):
+    cfg = ConfigParser.ConfigParser()
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        cfg.read(FILE_CONFIG)
+        valor = cfg.get('quechuad', clau)
+        return valor
+    except IOError, ex:
+        print ("El fitxer no se pot llegir!")
 
-        host = read_config('host')
-        port = read_config('port')
+##  Funció que contesta al socket
+#   @param sock Socket
+def respuesta(sock):
+    try:
+        OUT = sock.makefile()
+        http_command = OUT.readline()
+        headers = []
+        command = http_command.split()
+        #print "Commando:", command
+        for line in OUT:
+            if line.strip() == "": break
+            headers.append(line)
+        if command[0] == "GET":
+            if command[1] == "/":
+                filename = document_root + "/index.html"
+            else:
+                filename = document_root + command[1]
+            try:
+                FILE = open(filename, "rb")
+                #print "Sending", filename
+                m = mim.guess_type(filename)
+                size = os.stat(filename)[ST_SIZE]
+                mod = os.stat(filename)[ST_MTIME]
+                t = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(mod))
+                OUT.write("HTTP/1.0 200 OK\r\n")
+                OUT.write("Last-Modified: %s\r\n" % t)
+                OUT.write("Content-Type: %s\r\n" % m[0])
+                OUT.write("Content-Length: %d\r\n\r\n" % size)
+                OUT.flush()
+                sendfile.sendfile(OUT.fileno(), FILE.fileno(), 0, size)
+            except IOError:
+                OUT.write("HTTP 404 Fichero no existe\r\n")
+                #print "Error con", filename
+    except Exception, e:
+            print "Error en la conexión", e
+    OUT.close()
 
-        s.bind((host, int(port)))
-        s.listen(1)
-        print('Escoltant...')
-    except KeyboardInterrupt:
-        print "\nSortint... ara!\n"
-        sys.exit(-1)
-    finally:
-        s.close()
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    pids = set()
-    n_procs = read_config('max_processes')
+host = read_config('host')
+port = read_config('port')
 
-    serv = Server()
+s.bind((host, int(port)))
+s.listen(1)
 
-    # Inici
+## Funció que inicia el servidor
+def run_server(q,):
+    i = 0
+    p = current_process()
     while True:
-        for i in range(int(n_procs)):
-            pid = start()
-            pids.add(pid)
-            print "Nou proces: ", pid
-
         try:
-            (pid, status, rusage) = os.wait3(0) # os.WNOHANG
-            if pid > 0:
-                pids.remove(pid)
-        except OSError:
+            conn, addr = s.accept()
+            #~ print "Actius:", sem_actius.get_value()
+            # Incrementam el comptador de processos actius
+            sem_actius.release()
+            #print "Conexión desde:", addr, "PID:", os.getpid()
+            # Contestam
+            respuesta(conn)
+            conn.close()
+            # Decrementam el comptador de processos actius
+            sem_actius.acquire()
+            # Incrementam el numero de connexions del procés
+            i += 1
+            sem_lliures = sem_totals.get_value() - sem_actius.get_value()
+            # Si el procés ha respost a 1000 connexions o hi ha més processos lliures que el màxim permés, el procés es mor
+            if (i == 10) or (sem_lliures > max_processos_lliures):
+                sem_totals.acquire()
+                q.put(p.pid)
+                break
+        except socket.error:
             pass
-        except KeyboardInterrupt:
-            print "\nSortint... ara!\n"
-            sys.exit(-1)
 
-        print "Ha acabat:", pid, "stat:", status
+dr = read_config('document_root')
+env = os.getenv(dr)
+lang = os.getenv('LANG')
+
+# determinar el 'document_root' a l'escriptori
+if env:
+    if lang.startswith('es'):
+        document_root = env.strip() + '/Escritorio'
+    elif lang.startswith('en'):
+        document_root = env.strip() + '/Desktop'
+    elif lang.startswith('ca'):
+        document_root = env.strip() + '/Escriptori'
+    print 'Arrel: %s' % document_root
+else:
+    print "ERROR: Variable d'entorn %s no definida!" %env
+    sys.exit(-1)
+
+max_processos = int(read_config('max_processes'))
+min_processos = int(read_config('min_processes'))
+max_processos_lliures = int(read_config('max_spare_processes'))
+min_processos_lliures = int(read_config('min_spare_processes'))
+
+sem_totals = Semaphore(0)
+sem_actius = Semaphore(0)
+
+pids = set()
+q = Queue()
+
+# Cream el pool de procesos
+for i in range(min_processos):
+    sem_totals.release()
+    p = Process(target=run_server, args=(q,))
+    p.start()
+    pids.add(p.pid)
+    #print "Nou proces: ", p.pid
+
+print "\nhttp://%s:%s\n" % (host, port)
+
+while True:
+    # controlam amb semàfors que el nombre de processos no surti dels límits establerts
+    sem_lliures = sem_totals.get_value() - sem_actius.get_value()
+    #~ print "Lliures:", sem_lliures
+    while (sem_totals.get_value() < min_processos) or ((sem_totals.get_value() < max_processos) and (sem_lliures < min_processos_lliures)):
+        #~ print "Totals:", sem_totals.get_value()
+        sem_totals.release()
+        p = Process(target=run_server, args=(q,)) # proces nou
+        p.start()
+        pids.add(p.pid)
+        print "Nou proces:", p.pid
+
+    pid = q.get(True) # espera
+    pids.remove(pid)
+    print "Ha acabat:", pid
+
