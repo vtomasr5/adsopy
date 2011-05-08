@@ -31,7 +31,7 @@ def punt1():
         print "Fitxer:", i, "Tamany:", d[i], "bytes"
 
 ##  Funció que calcula el tràfic total per fitxer
-def punt2(fitxer):
+def punt2():
     f = fileinput.input(fitxer)
     d = {}
     for l in f: # iteram sobre ses linies
@@ -150,7 +150,7 @@ def punt7():
 
 ##  Funció que mostra un menú per pantalla
 #   @param f Fitxer de log passat per paràmetre
-def menu(f):
+def menu():
     print "\n----- Menú d'administració interactiu -----\n"
     print "1) Tamany de cada fitxer"
     print "2) Tràfic total per cada fitxer"
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
     while True:
         try:
-            menu(fitxer)
+            menu()
         except KeyboardInterrupt:
             print "\nSortint... ara!"
             sys.exit(1)
