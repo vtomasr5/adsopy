@@ -5,6 +5,9 @@
 # LLICENCIA: GPL-3
 # VERSIO: 0.1
 #asdfasdfasdgfadsgasdhasdg
+# poiu
+#pip
+# as fgadsjs
 ##  @package quechua
 #   Servidor web amb prefork. Consisteix en servir pàgines web estàtiques de forma que la primera vegada
 #   que arranca el servidor es crei un conjunt de processos i es mantinguin en espera x processos per sobre
